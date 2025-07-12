@@ -1,2 +1,2 @@
-🎵 # huntrix-project 🎵
+# huntrix-project 🎵
 Web page for Media Player
