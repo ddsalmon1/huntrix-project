@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap');
 
 html{
     box-sizing: border-box;
@@ -48,10 +49,25 @@ body{
     pointer-events: none;
 }
 
+.rectangle {
+    position: fixed;
+    bottom: 0; /* Adjusted to be at the bottom compared to 50px (same with left) */
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background: #663fa3;
+    z-index: 5;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+}
+
 .container{
     background-color: #e7e7e7;
-    height: 500px;
-    width: 400px;
+    height: 400px;
+    width: 700px;
     border-radius: 20px;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
     transition: all 0.5s ease;
@@ -65,7 +81,7 @@ body{
     width: 300px;
     height: 300px;
     position: relative;
-    top: -50px;
+    top: 50px;
     left: 50px;
 }
 
@@ -94,6 +110,9 @@ h2{
     text-align: center;
     font-weight: 500;
     margin: 10px 0 0;
+    position: relative;
+    top: -200px;
+    left: 170px;
 }
 
 h3{
@@ -101,36 +120,115 @@ h3{
     text-align: center;
     font-weight: 500;
     margin: 10px 0 0;
+    position: relative;
+    top: -160px;
+    left: 170px;
 }
 
 .player-progress{
-    background-color: #fff;
-    border-radius: 5px;
+    background-color: #cb4d9c;
     cursor: pointer;
-    margin: 40px 20px 35px;
-    height: 6px;
+    margin: 40px 20px 35px -18px;
+    height: 10px;
     width: 90%;
+    position: relative;
+    box-shadow: 
+        0 0 5px #b668b4,
+        0 0 10px #803a74,
+        0 0 15px #703c70;
+}
+
+/* Saja Boys theme - inverted colors */
+.player-progress.saja-theme {
+    background-color: #f8cc8f;
+    box-shadow: 
+        0 0 5px #f8cc8f,
+        0 0 10px #efc68c;
 }
 
 .progress{
-    background-color: #212121;
-    border-radius: 5px;
+    background-color: #f8cc8f;
     height: 100%;
     width: 0%;
-    transition: width 0.1s linear;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+    box-shadow: 
+        0 0 5px #f8cc8f,
+        0 0 10px #efc68c;
+}
+
+/* Saja Boys theme - inverted progress fill */
+.progress.saja-theme {
+    background-color: #cb4d9c;
+    box-shadow: 
+        0 0 5px #cb4d9c,
+        0 0 10px #803a74,
+        0 0 15px #803a74;
+}
+
+.progress-indicator {
+    position: absolute;
+    top: -20px;
+    left: 0%;
+    width: 80px;
+    height: 50px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform: translateX(-50%);
+    transition: left 0.1s linear;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 1;
+    animation: rotate 1s linear infinite;
+    animation-play-state: paused; /* Start paused by default */
+    filter: drop-shadow(0 0 2px #4a90e2) drop-shadow(0 0 4px #4a90e2) drop-shadow(0 0 1px rgba(74, 144, 226, 0.8));
+}
+
+/* Default indicator image */
+.progress-indicator.huntrix-bl-icon {
+    background-image: url('assets/huntrix-bl-icon.png');
+}
+
+/* Saja Boys indicator image */
+.progress-indicator.saja-icon {
+    background-image: url('assets/saja-icon.png');
+    width: 40px; 
+    animation: rotate 1s linear infinite;
+    animation-play-state: paused; /* Start paused by default */
+    filter: drop-shadow(0 0 2px #ff69b4) drop-shadow(0 0 4px #ff69b4) drop-shadow(0 0 1px rgba(255, 105, 180, 0.8));
+}
+
+.progress-indicator.playing {
+    animation-play-state: running; /* Play animation when music is playing */
+}
+
+/* Animation for the progress indicator */
+@keyframes rotate {
+    from {
+        transform: translateX(-50%) rotate(0deg);
+    }
+    to {
+        transform: translateX(-50%) rotate(360deg);
+    }
 }
 
 .music-duration{
+    font-family: 'Pixelify Sans';
+    font-size: 25px;
     position: relative;
-    top: -25px;
+    top: -19px;
+    right: 80px;
+    width: 1885px;
     display: flex;
     justify-content: space-between;
 }
 
 .player-controls{
+    text-align: center;
     position: relative;
-    top: -15px;
-    left: 120px;
+    top: -140px;
+    left: 440px;
     width: 200px;
 }
 
@@ -141,6 +239,8 @@ h3{
     cursor: pointer;
     user-select: none;
     transition: all 0.3s ease;
+    position: relative;
+    top: 25px;
 }
 
 .fa-solid:hover{
@@ -150,7 +250,7 @@ h3{
 .play-button{
     font-size: 44px;
     position: relative;
-    top: 3px;
+    top: 30px;
 }
 
 /* Volume Controls */
@@ -182,6 +282,8 @@ h3{
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
+    position: relative;
+    top: 25px;
 }
 
 .volume-slider::-webkit-slider-thumb {
@@ -209,4 +311,6 @@ h3{
     color: #666;
     font-weight: 500;
     min-width: 35px;
+    position: relative;
+    top: 25px;
 }
