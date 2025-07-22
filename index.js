@@ -5,6 +5,7 @@ const image = document.getElementById('cover'),
     durationEl = document.getElementById('duration'),
     progress = document.getElementById('progress'),
     playerProgress = document.getElementById('player-progress'),
+    progressIndicator = document.getElementById('progress-indicator'),
     prevBtn = document.getElementById('prev'),
     nextBtn = document.getElementById('next'),
     playBtn = document.getElementById('play'),
@@ -22,31 +23,47 @@ let isVisualizerActive = false;
 let fadeOutTimer = 0;
 let lastAudioActivity = 0;
 
+// Enhanced beat detection variables
+let beatHistory = [];
+let energyHistory = [];
+let lastBeatTime = 0;
+let beatThreshold = 1.3;
+
 
 const songs = [
     {
         path: 'assets/Golden.mp3',
         displayName: 'Golden',
         cover: 'assets/Golden.png',
-        artist: 'Kpop Demon Hunters, Huntrix',
+        artist: 'Huntrix',
+        indicator: 'huntrix-bl-icon'
     },
     {
         path: 'assets/SodaPop.mp3',
         displayName: 'Soda Pop',
         cover: 'assets/SodaPop.jpeg',
-        artist: 'Kpop Demon Hunters, Saja Boys',
+        artist: 'Saja Boys',
+        indicator: 'saja-icon'
     },
     {
         path: 'assets/YourIdol.mp3',
         displayName: 'Your Idol',
         cover: 'assets/YourIdol.jpeg',
-        artist: 'Kpop Demon Hunters, Saja Boys',
+        artist: 'Saja Boys',
+        indicator: 'saja-icon'
+    },
+    {
+        path: 'assets/Free.mp3',
+        displayName: 'Free',
+        cover: 'assets/Free.jpeg',
+        artist: 'Rumi, Jinu'
     },
     {
         path: 'assets/Takedown.mp3',
         displayName: 'Takedown',
         cover: 'assets/Takedown.jpeg',
-        artist: 'Kpop Demon Hunters, Huntrix',
+        artist: 'Huntrix',
+        indicator: 'huntrix-bl-icon'
     }
 ];
 
@@ -69,6 +86,9 @@ function playMusic() {
     playBtn.setAttribute('title', 'Pause');
     music.play();
     
+    // Start progress indicator rotation
+    progressIndicator.classList.add('playing');
+    
     // Initialize and start visualizer
     if (audioContext?.state === 'suspended') {
         audioContext.resume();
@@ -84,6 +104,9 @@ function pauseMusic() {
     playBtn.setAttribute('title', 'Play');
     music.pause();
     
+    // Stop progress indicator rotation
+    progressIndicator.classList.remove('playing');
+    
     // Stop visualizer when music is paused
     stopVisualizer();
 }
@@ -94,18 +117,46 @@ function loadMusic(song) {
     artist.textContent = song.artist;
     image.src = song.cover;
     background.src = song.cover;
+    
+    // Clear existing indicator classes
+    progressIndicator.className = 'progress-indicator';
+    
+    // Clear existing theme classes
+    playerProgress.classList.remove('saja-theme');
+    progress.classList.remove('saja-theme');
+    
+    // Add the specific indicator class for this song
+    if (song.indicator) {
+        progressIndicator.classList.add(song.indicator);
+        
+        // Apply Saja theme if it's a Saja Boys song
+        if (song.indicator === 'saja-icon') {
+            playerProgress.classList.add('saja-theme');
+            progress.classList.add('saja-theme');
+        }
+    } else {
+        // Default to huntrix-bl-icon if no indicator specified
+        progressIndicator.classList.add('huntrix-bl-icon');
+    }
 }
 
 function changeMusic(direction) {
     musicIndex = (musicIndex + direction + songs.length) % songs.length;
-    loadMusic(songs[musicIndex]);
-    playMusic();
+    
+    // Add a small delay to prevent abrupt progress reset
+    setTimeout(() => {
+        loadMusic(songs[musicIndex]);
+        playMusic();
+    }, 100);
 }
 
 function updateProgressBar() {
     const { duration, currentTime } = music;
     const progressPercent = (currentTime / duration) * 100;
     progress.style.width = `${progressPercent}%`;
+    
+    // Update progress indicator position
+    progressIndicator.style.left = `${progressPercent}%`;
 
     const formatTime = (time) => String(Math.floor(time)).padStart(2, '0');
     durationEl.textContent = `${formatTime(duration / 60)}:${formatTime(duration % 60)}`;
@@ -113,8 +164,10 @@ function updateProgressBar() {
 }
 
 function setProgressBar(e) {
-    const width = playerProgress.clientWidth;
-    const clickX = e.offsetX;
+    const rect = playerProgress.getBoundingClientRect();
+    // Calculate click position relative to the progress bar (due to additional left padding I did in css )
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
     music.currentTime = (clickX / width) * music.duration;
 }
 
@@ -155,6 +208,9 @@ function initVisualizer() {
     // Set canvas size to match window
     resizeCanvas();
     
+    // Draw initial overlay even before music starts
+    drawInitialOverlay();
+    
     // Create audio context if it doesn't exist
     if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -173,10 +229,11 @@ function initVisualizer() {
     drawVisualizer();
 }
 
-function resizeCanvas() {
-    if (canvas) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+function drawInitialOverlay() {
+    if (canvas && canvasCtx) {
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // 80% opacity black overlay
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
     }
 }
 
@@ -190,11 +247,14 @@ function drawVisualizer() {
     // Clear canvas
     canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Calculate average audio intensity
+    // Add semi-transparent black overlay to darken the background
+    canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Calculate audio data
     let totalIntensity = 0;
     let bassIntensity = 0;
     
-    // Analyze bass frequencies for beat detection (first 10% of frequency data)
     const bassRange = Math.floor(dataArray.length * 0.1);
     
     for (let i = 0; i < dataArray.length; i++) {
@@ -207,19 +267,61 @@ function drawVisualizer() {
     const avgIntensity = totalIntensity / dataArray.length / 255;
     bassIntensity = (bassIntensity / bassRange) / 255;
     
-    // Simple beat detection - emphasize bass for beat response
-    const beatMultiplier = 1 + (bassIntensity * 0.01); // Reduced to 1% more intensity on beats
+    // Beat detection
+    const lowFreqEnergy = calculateFrequencyRangeEnergy(0, 0.1);
+    const midFreqEnergy = calculateFrequencyRangeEnergy(0.1, 0.4);
+    const highFreqEnergy = calculateFrequencyRangeEnergy(0.4, 1.0);
+    
+    const totalEnergy = (lowFreqEnergy * 2.0) + (midFreqEnergy * 1.2) + (highFreqEnergy * 0.8);
+    
+    energyHistory.push(totalEnergy);
+    if (energyHistory.length > 43) {
+        energyHistory.shift();
+    }
+    
+    const avgEnergy = energyHistory.reduce((sum, e) => sum + e, 0) / energyHistory.length;
+    const energyVariance = energyHistory.reduce((sum, e) => sum + Math.pow(e - avgEnergy, 2), 0) / energyHistory.length;
+    
+    const adaptiveThreshold = beatThreshold + (energyVariance * 0.5);
+    
+    const currentTime = Date.now();
+    let beatDetected = false;
+    
+    if (totalEnergy > avgEnergy * adaptiveThreshold && 
+        currentTime - lastBeatTime > 200) {
+        beatDetected = true;
+        lastBeatTime = currentTime;
+        
+        beatHistory.push(currentTime);
+        if (beatHistory.length > 8) {
+            beatHistory.shift();
+        }
+    }
+    
+    const beatMultiplier = beatDetected ? 1.15 : Math.max(1.0, 1 + (totalEnergy / avgEnergy - 1) * 0.1);
+    
+    // Helper function for frequency range energy calculation
+    function calculateFrequencyRangeEnergy(startPercent, endPercent) {
+        const startIndex = Math.floor(dataArray.length * startPercent);
+        const endIndex = Math.floor(dataArray.length * endPercent);
+        let energy = 0;
+        
+        for (let i = startIndex; i < endIndex; i++) {
+            energy += Math.pow(dataArray[i] / 255, 2);
+        }
+        
+        return energy / (endIndex - startIndex);
+    }
 
-    // Track audio activity for fade out effect
+    // Fade out logic
     if (avgIntensity > 0.05) {
         lastAudioActivity = Date.now();
         fadeOutTimer = 0;
     } else {
         const timeSinceActivity = Date.now() - lastAudioActivity;
-        fadeOutTimer = Math.min(timeSinceActivity / 1500, 1); // Fade over 1.5 seconds
+        fadeOutTimer = Math.min(timeSinceActivity / 1500, 1);
     }
     
-    // Apply fade out effect for low audio levels
     const volumeBasedFade = Math.max(0, (avgIntensity - 0.02) / 0.08);
     const fadeMultiplier = Math.min(1 - fadeOutTimer, volumeBasedFade);
     const adjustedIntensity = avgIntensity * Math.max(fadeMultiplier, 0.1);
@@ -231,22 +333,70 @@ function drawVisualizer() {
     // Create horizontal waves
     const numWaves = 20;
     const waveSpacing = canvas.height / (numWaves + 1.5);
-    
+
     for (let wave = 0; wave < numWaves; wave++) {
         const y = waveSpacing * (wave + 1);
+        
         const waveIntensity = Math.max(0.75, adjustedIntensity + (Math.sin(Date.now() * 0.002 + wave) * 0.5)) * fadeMultiplier * beatMultiplier;
         
         // Color interpolation between blue and gold
-        const red = Math.floor(goldAmount * 255 + blueAmount * 100);
-        const green = Math.floor(goldAmount * 215 + blueAmount * 150);
-        const blue = Math.floor(goldAmount * 0 + blueAmount * 255);
+        const red = Math.floor(goldAmount * 255 + blueAmount * 6);
+        const green = Math.floor(goldAmount * 215 + blueAmount * 99);
+        const blue = Math.floor(goldAmount * 0 + blueAmount * 181);
         const alpha = Math.max(0.1, waveIntensity * 0.8) * fadeMultiplier;
         
         // Skip drawing if wave is nearly invisible
         if (alpha < 0.05) continue;
         
-        canvasCtx.strokeStyle = `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-        canvasCtx.lineWidth = 2;
+        // Create neon glow effect with gradient
+        const gradient = canvasCtx.createLinearGradient(0, y - 10, 0, y + 10);
+        
+        // Outer glow (more opaque)
+        gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, ${alpha * 0.6})`);
+        // Middle core (brighter neon effect)
+        const neonRed = Math.floor(goldAmount * 255 + blueAmount * 123);
+        const neonGreen = Math.floor(goldAmount * 255 + blueAmount * 213);
+        const neonBlue = Math.floor(goldAmount * 100 + blueAmount * 255);
+        gradient.addColorStop(0.5, `rgba(${neonRed}, ${neonGreen}, ${neonBlue}, ${alpha})`);
+        // Outer glow (more opaque)
+        gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, ${alpha * 0.8})`);
+        
+        // Create bloom effect - multiple layers of expanding glow
+        const bloomLayers = 3;
+        const bloomIntensity = waveIntensity * 0.2;
+        
+        for (let bloom = 0; bloom < bloomLayers; bloom++) {
+            const bloomSize = (bloom + 1) * 8;
+            const bloomAlpha = (bloomIntensity / (bloom + 1)) * 0.3;
+            
+            if (bloomAlpha > 0.02) {
+                canvasCtx.strokeStyle = `rgba(${neonRed}, ${neonGreen}, ${neonBlue}, ${bloomAlpha})`;
+                canvasCtx.lineWidth = bloomSize;
+                canvasCtx.beginPath();
+                
+                for (let x = 0; x <= canvas.width; x += 2) {
+                    const waveHeight = Math.sin((x * 0.01) + (Date.now() * 0.001) + (wave * 0.5)) * 
+                                      (20 + (adjustedIntensity * 30)) * 
+                                      (1 + Math.sin(Date.now() * 0.005 + wave) * 0.3) * 
+                                      (1 + adjustedIntensity * 0.8) *
+                                      beatMultiplier *
+                                      fadeMultiplier;
+                    
+                    const currentY = y + waveHeight;
+                    
+                    if (x === 0) {
+                        canvasCtx.moveTo(x, currentY);
+                    } else {
+                        canvasCtx.lineTo(x, currentY);
+                    }
+                }
+                
+                canvasCtx.stroke();
+            }
+        }
+        
+        canvasCtx.strokeStyle = gradient;
+        canvasCtx.lineWidth = 1.5;
         canvasCtx.beginPath();
         
         for (let x = 0; x <= canvas.width; x += 2) {
@@ -254,7 +404,7 @@ function drawVisualizer() {
                               (20 + (adjustedIntensity * 30)) * 
                               (1 + Math.sin(Date.now() * 0.005 + wave) * 0.3) * 
                               (1 + adjustedIntensity * 0.8) *
-                              beatMultiplier * // Add beat responsiveness here
+                              beatMultiplier *
                               fadeMultiplier;
             
             const currentY = y + waveHeight;
@@ -287,3 +437,33 @@ volumeIcon.addEventListener('click', toggleMute);
 window.addEventListener('resize', resizeCanvas);
 
 loadMusic(songs[musicIndex]);
+
+// Initialize canvas and overlay immediately when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('visualizer-canvas');
+    if (canvas) {
+        const canvasCtx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Draw initial overlay immediately
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+});
+
+// Also ensure overlay is maintained on window resize
+function resizeCanvas() {
+    if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Reapply overlay after resize
+        if (canvasCtx) {
+            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+            canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+}
