@@ -330,8 +330,25 @@ function drawVisualizer() {
     const blueAmount = Math.max(0, 1 - adjustedIntensity * 2);
     const goldAmount = Math.min(1, adjustedIntensity * 1.5);
     
-    // Create horizontal waves
-    const numWaves = 20;
+    // Check for small screen and use dedicated visualizer
+    const isSmallScreen = canvas.width <= 320 && canvas.height <= 240;
+    
+    if (isSmallScreen) {
+        drawSmallScreenVisualizer(adjustedIntensity, beatMultiplier, fadeMultiplier, blueAmount, goldAmount);
+        return;
+    }
+    
+    // Calculate scale factor based on screen height (reference: 1080p)
+    const heightScaleFactor = canvas.height / 1080;
+    
+    // Apply scaling for larger screens
+    const scaledWaveCount = Math.max(10, Math.round(20 * heightScaleFactor));
+    const scaledAmplitude = Math.max(8, 20 * heightScaleFactor);
+    const scaledIntensityMultiplier = Math.max(12, 30 * heightScaleFactor);
+    const scaledBloomSize = Math.max(4, 8 * heightScaleFactor);
+    const scaledLineWidth = Math.max(0.8, 1.5 * heightScaleFactor);
+    
+    const numWaves = scaledWaveCount;
     const waveSpacing = canvas.height / (numWaves + 1.5);
 
     for (let wave = 0; wave < numWaves; wave++) {
@@ -366,7 +383,7 @@ function drawVisualizer() {
         const bloomIntensity = waveIntensity * 0.2;
         
         for (let bloom = 0; bloom < bloomLayers; bloom++) {
-            const bloomSize = (bloom + 1) * 8;
+            const bloomSize = (bloom + 1) * scaledBloomSize;
             const bloomAlpha = (bloomIntensity / (bloom + 1)) * 0.3;
             
             if (bloomAlpha > 0.02) {
@@ -376,7 +393,7 @@ function drawVisualizer() {
                 
                 for (let x = 0; x <= canvas.width; x += 2) {
                     const waveHeight = Math.sin((x * 0.01) + (Date.now() * 0.001) + (wave * 0.5)) * 
-                                      (20 + (adjustedIntensity * 30)) * 
+                                      (scaledAmplitude + (adjustedIntensity * scaledIntensityMultiplier)) * 
                                       (1 + Math.sin(Date.now() * 0.005 + wave) * 0.3) * 
                                       (1 + adjustedIntensity * 0.8) *
                                       beatMultiplier *
@@ -396,14 +413,120 @@ function drawVisualizer() {
         }
         
         canvasCtx.strokeStyle = gradient;
-        canvasCtx.lineWidth = 1.5;
+        canvasCtx.lineWidth = scaledLineWidth;
         canvasCtx.beginPath();
         
         for (let x = 0; x <= canvas.width; x += 2) {
             const waveHeight = Math.sin((x * 0.01) + (Date.now() * 0.001) + (wave * 0.5)) * 
-                              (20 + (adjustedIntensity * 30)) * 
+                              (scaledAmplitude + (adjustedIntensity * scaledIntensityMultiplier)) * 
                               (1 + Math.sin(Date.now() * 0.005 + wave) * 0.3) * 
                               (1 + adjustedIntensity * 0.8) *
+                              beatMultiplier *
+                              fadeMultiplier;
+            
+            const currentY = y + waveHeight;
+            
+            if (x === 0) {
+                canvasCtx.moveTo(x, currentY);
+            } else {
+                canvasCtx.lineTo(x, currentY);
+            }
+        }
+        
+        canvasCtx.stroke();
+    }
+}
+
+// Dedicated visualizer for 320x240 screens
+function drawSmallScreenVisualizer(adjustedIntensity, beatMultiplier, fadeMultiplier, blueAmount, goldAmount) {
+    // Proportional scaling based on 320x240 vs reference resolution (1920x1080)
+    const scaleFactorX = canvas.width / 1920;
+    const scaleFactorY = canvas.height / 1080;
+    const avgScaleFactor = (scaleFactorX + scaleFactorY) / 2;
+    
+    // Optimized settings for clean, smooth lines similar to the original
+    const numWaves = Math.max(10, Math.round(20 * scaleFactorY)); // Fewer waves for cleaner look
+    const amplitude = 15 * Math.max(0.4, avgScaleFactor); // Slightly higher amplitude for visibility
+    const intensityMultiplier = 25 * Math.max(0.8, avgScaleFactor); // Strong intensity response
+    const bloomSize = 6 * Math.max(1, avgScaleFactor); // Balanced bloom effect
+    const lineWidth = 1.2 * Math.max(0.7, avgScaleFactor); // Slightly thicker for clarity
+    
+    const waveSpacing = canvas.height / (numWaves + 1);
+    
+    for (let wave = 0; wave < numWaves; wave++) {
+        const y = waveSpacing * (wave + 1.5);
+        
+        // Refined intensity calculation for smoother waves
+        const waveIntensity = Math.max(1, adjustedIntensity + (Math.sin(Date.now() * 0.002 + wave) * 0.4)) * fadeMultiplier * beatMultiplier;
+        
+        // Same color interpolation between blue and gold
+        const red = Math.floor(goldAmount * 255 + blueAmount * 6);
+        const green = Math.floor(goldAmount * 215 + blueAmount * 99);
+        const blue = Math.floor(goldAmount * 0 + blueAmount * 181);
+        const alpha = Math.max(0.1, waveIntensity * 0.8) * fadeMultiplier;
+        
+        // Skip drawing if wave is nearly invisible
+        if (alpha < 0.05) continue;
+        
+        // Proportionally scaled neon glow effect with gradient
+        const gradient = canvasCtx.createLinearGradient(0, y - (10 * avgScaleFactor), 0, y + (10 * avgScaleFactor));
+        
+        // Outer glow
+        gradient.addColorStop(0, `rgba(${red}, ${green}, ${blue}, ${alpha * 0.6})`);
+        // Middle core (brighter neon effect)
+        const neonRed = Math.floor(goldAmount * 255 + blueAmount * 123);
+        const neonGreen = Math.floor(goldAmount * 255 + blueAmount * 213);
+        const neonBlue = Math.floor(goldAmount * 100 + blueAmount * 255);
+        gradient.addColorStop(0.5, `rgba(${neonRed}, ${neonGreen}, ${neonBlue}, ${alpha})`);
+        // Outer glow
+        gradient.addColorStop(1, `rgba(${red}, ${green}, ${blue}, ${alpha * 0.8})`);
+        
+        // Same bloom effect - multiple layers of expanding glow with maintained intensity
+        const bloomLayers = 3;
+        const bloomIntensity = waveIntensity * 0.2; // Same intensity as original visualizer
+        
+        for (let bloom = 0; bloom < bloomLayers; bloom++) {
+            const currentBloomSize = (bloom + 1) * bloomSize;
+            const bloomAlpha = (bloomIntensity / (bloom + 1)) * 0.3;
+            
+            if (bloomAlpha > 0.02) {
+                canvasCtx.strokeStyle = `rgba(${neonRed}, ${neonGreen}, ${neonBlue}, ${bloomAlpha})`;
+                canvasCtx.lineWidth = currentBloomSize;
+                canvasCtx.beginPath();
+                
+                // Smoother wave calculation with optimized frequency
+                for (let x = 0; x <= canvas.width; x += Math.max(1, Math.round(1.5 * avgScaleFactor))) {
+                    const waveHeight = Math.sin((x * 0.008 * (1920 / canvas.width)) + (Date.now() * 0.001) + (wave * 0.5)) * 
+                                      (amplitude + (adjustedIntensity * intensityMultiplier)) * 
+                                      (1 + Math.sin(Date.now() * 0.004 + wave) * 0.25) * 
+                                      (1 + adjustedIntensity * 0.6) *
+                                      beatMultiplier *
+                                      fadeMultiplier;
+                   
+                    const currentY = y + waveHeight;
+                    
+                    if (x === 0) {
+                        canvasCtx.moveTo(x, currentY);
+                    } else {
+                        canvasCtx.lineTo(x, currentY);
+                    }
+                }
+                
+                canvasCtx.stroke();
+            }
+        }
+        
+        // Main wave drawing
+        canvasCtx.strokeStyle = gradient;
+        canvasCtx.lineWidth = lineWidth;
+        canvasCtx.beginPath();
+        
+        // Smoother main wave calculation
+        for (let x = 0; x <= canvas.width; x += Math.max(1, Math.round(1.5 * avgScaleFactor))) {
+            const waveHeight = Math.sin((x * 0.008 * (1920 / canvas.width)) + (Date.now() * 0.001) + (wave * 0.5)) * 
+                              (amplitude + (adjustedIntensity * intensityMultiplier)) * 
+                              (1 + Math.sin(Date.now() * 0.004 + wave) * 0.25) * 
+                              (1 + adjustedIntensity * 0.6) *
                               beatMultiplier *
                               fadeMultiplier;
             
