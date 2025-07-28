@@ -178,7 +178,7 @@ h3{
     opacity: 1;
     animation: rotate 1s linear infinite;
     animation-play-state: paused; /* Start paused by default */
-    filter: none; /* Remove drop-shadow filters */
+    filter: drop-shadow(0 0 2px #4a90e2) drop-shadow(0 0 4px #4a90e2) drop-shadow(0 0 1px rgba(74, 144, 226, 0.8)); /* Restore drop-shadow filters */
 }
 
 /* Default indicator image */
