@@ -90,9 +90,6 @@ body{
     opacity: 0;
 }
 
-.player-img:hover img{
-    /* Remove these CPU-intensive effects */
-}
 
 .player-img img.active{
     width: 100%;
