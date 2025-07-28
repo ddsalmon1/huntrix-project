@@ -72,11 +72,6 @@ body{
     width: 700px;
     border-radius: 20px;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
-    transition: all 0.5s ease;
-}
-
-.container:hover{
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
 }
 
 .player-img{
@@ -93,11 +88,10 @@ body{
     height: 0;
     width: 0;
     opacity: 0;
-    box-shadow: 0 5px 30px 5px rgba(0, 0, 0, 0.5);
 }
 
 .player-img:hover img{
-    box-shadow: 0 5px 30px 5px rgba(0, 0, 0, 0.8);
+    /* Remove these CPU-intensive effects */
 }
 
 .player-img img.active{
@@ -184,7 +178,7 @@ h3{
     opacity: 1;
     animation: rotate 1s linear infinite;
     animation-play-state: paused; /* Start paused by default */
-    filter: drop-shadow(0 0 2px #4a90e2) drop-shadow(0 0 4px #4a90e2) drop-shadow(0 0 1px rgba(74, 144, 226, 0.8));
+    filter: none; /* Remove drop-shadow filters */
 }
 
 /* Default indicator image */
@@ -246,7 +240,8 @@ h3{
 }
 
 .fa-solid:hover{
-    filter: brightness(40%);
+    /* Remove brightness filter */
+    filter: none;
 }
 
 .play-button{
