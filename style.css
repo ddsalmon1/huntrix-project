@@ -33,9 +33,9 @@ body{
     right: 0;
     min-width: 50%;
     min-height: 50%;
-    filter: blur(15px);
-    -webkit-filter: blur(50px);
-    transform: scale(1.1);
+    filter: blur(2px);  /* Reduce from 15px */
+    -webkit-filter: blur(2px);  /* Reduce from 50px */
+    transform: none;  /* Remove scaling */
 }
 
 #visualizer-canvas {
@@ -57,7 +57,7 @@ body{
     height: 70px;
     background: #663fa3;
     z-index: 5;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -71,7 +71,7 @@ body{
     height: 400px;
     width: 700px;
     border-radius: 20px;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: none;
 }
 
 .player-img{
@@ -125,10 +125,7 @@ h3{
     height: 10px;
     width: 90%;
     position: relative;
-    box-shadow: 
-        0 0 5px #b668b4,
-        0 0 10px #803a74,
-        0 0 15px #703c70;
+    box-shadow: none;
 }
 
 /* Saja Boys theme - inverted colors */
@@ -145,9 +142,7 @@ h3{
     width: 0%;
     transition: width 0.3s ease;
     border-radius: 2px;
-    box-shadow: 
-        0 0 5px #f8cc8f,
-        0 0 10px #efc68c;
+    box-shadow: none;
 }
 
 /* Saja Boys theme - inverted progress fill */
@@ -173,9 +168,8 @@ h3{
     pointer-events: none;
     z-index: 10;
     opacity: 1;
-    animation: rotate 1s linear infinite;
-    animation-play-state: paused; /* Start paused by default */
-    filter: drop-shadow(0 0 2px #4a90e2) drop-shadow(0 0 4px #4a90e2) drop-shadow(0 0 1px rgba(74, 144, 226, 0.8)); /* Restore drop-shadow filters */
+    animation: none; 
+    filter: none; 
 }
 
 /* Default indicator image */
@@ -187,9 +181,8 @@ h3{
 .progress-indicator.saja-icon {
     background-image: url('assets/saja-icon.png');
     width: 40px; 
-    animation: rotate 1s linear infinite;
-    animation-play-state: paused; /* Start paused by default */
-    filter: drop-shadow(0 0 2px #ff69b4) drop-shadow(0 0 4px #ff69b4) drop-shadow(0 0 1px rgba(255, 105, 180, 0.8));
+    animation: none; 
+    filter: none; 
 }
 
 .progress-indicator.playing {
